@@ -1,0 +1,27 @@
+{
+	"folders": [
+		{
+			"path": "Computer Programming Project.xcodeproj"
+		},
+		{
+			"path": "files"
+		},
+		{
+			"path": "include"
+		},
+		{
+			"path": "src"
+		},
+		{
+			"path": "tests"
+		},
+		{
+			"path": "tools"
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"garbage_2": "cpp"
+		}
+	}
+}

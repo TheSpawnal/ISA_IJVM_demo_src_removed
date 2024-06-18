@@ -1,0 +1,187 @@
+.main
+    IN          
+    IN          
+    DUP         
+    IN          
+    
+    DUP         
+    BIPUSH 3    
+    IADD        
+    OUT         
+    
+    SWAP        
+    IADD        
+    OUT         
+    
+    POP         
+    SWAP        
+    ISUB   //stack is empty at this point when reading instructions     
+    OUT         
+
+    SWAP        
+    IADD        
+    SWAP        
+    IADD        
+    BIPUSH 10   
+    ISUB        
+    OUT         
+
+    HALT        
+.end-main
+
+
+
+// xxd stack.ijvm
+// 00000000: 1dea dfad 0001 0000 0000 0000 0000 0000  ................
+// 00000010: 0000 0019 fcfc 59fc 5910 0360 fd5f 60fd  ......Y.Y..`._`.
+// 00000020: 575f 64fd 5f60 5f60 100a 64fd ff         W_d._`_`..d..
+
+// 1D  EA  DF  AD
+// Magic number
+// The first word should be equal to the magic number 0x1DEADFAD
+// to confirm that the loaded binary is a valid IJVM executable.
+
+// 0   1   0   0
+// Constant pool origin
+// The constant pool origin represents the place where the constant
+// pool has to be mapped in in memory. For this binary that is at 
+// memory address 0x10000. Since the IJVM binaries work with offsets 
+// from the start of the constant pool, you can ignore this origin address.
+
+// 0   0   0   0
+// Constant pool size
+// These four bytes tell you how many next bytes are dedicated to defining
+// constants. Constants are always word-sized and thus the constant pool 
+// size always is a multiple of 4. 
+// In this case there are 0x0 bytes and thus 0x0 / 0x4 = 0x0 constant in total.
+
+// 0   0   0   0
+// Text pool origin
+// Like the constant pool origin, the text pool origin tells you where
+// the text section needs to be mapped. In this case 0x0. 
+// You can ignore this origin as well.
+
+// 0   0   0   19
+// Text pool size
+// Similarly to the constant pool size, the text pool size tells you how many 
+// of the coming bytes are dedicated to the text section of the binary. 
+// In this case, the text section consists of 0x19 bytes.
+
+// FC  FC  59  FC
+// 59  10  3   60
+// FD  5F  60  FD
+// 57  5F  64  FD
+// 5F  60  5F  60
+// 10  A   64  FD
+// FF
+// Text pool
+// The text pool contains all instructions and, when applicable, their arguments. 
+// Your IJVM implementation should start running the binary from the first text
+// pool byte.
+
+// flow control:
+// Input
+// !!C
+
+// FC    
+// stack:  0x21 TOS(top of the stack)
+// 59
+// stack:  0x21 
+//         0x21 TOS
+// FC
+// stack:  0x21 
+//         0x21
+//         0x21 TOS
+// 59
+// stack:  0x21 
+//         0x21
+//         0x21
+//         0x21 TOS
+// 10
+// stack:  0x21
+//         0x21
+//         0x21
+//         0x43
+//         0x43 TOS
+// 60
+// stack:  0x21
+//         0x21
+//         0x21
+//         0x43
+//         0x43
+//         0x3 TOS
+// FD
+// stack:  0x21
+//         0x21
+//         0x21
+//         0x43
+//         0x46 TOS
+
+// 5F
+// stack:  0x21
+//         0x21
+//         0x21
+//         0x43 TOS
+// output:
+// F
+
+// 60
+// stack:  0x21
+//         0x21
+//         0x43 
+//         0x21 TOS
+// output:
+// F
+
+// FD
+// stack:  0x21
+//         0x21
+//         0x64 TOS
+// output:
+// F
+
+// 57
+// stack:  0x21
+//         0x21 TOS
+// output:
+// F
+
+// 5F
+// stack:  0x21 TOS
+// output:
+// Fd
+
+// 64
+// stack: no stack variables.
+// output: 
+// Fd
+
+
+//logs:
+//Input:
+// !!C
+// Expected output:
+// Fd"{
+// Actual output:
+// Fd!�
+
+// Input:
+// !"C
+// Expected output:
+// Fe!|
+// Actual output:
+// Fe!�
+
+// Input:
+// "#C
+// Expected output:
+// Ff ~
+// Actual output:
+// Ff"�
+
+// Input:
+// !!Cz
+// Expected output:
+// Fd"{
+// Actual output:
+// Fd!�

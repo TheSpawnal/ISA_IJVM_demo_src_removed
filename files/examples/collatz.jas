@@ -1,13 +1,10 @@
 .constant
 .end-constant
 // computes the length of the Collatz sequence for 3 (= 7)
-// see (https://en.wikipedia.org/wiki/Collatz_conjecture)
 // As we have no local variables, we keep counters on the stack and swap them
 // to the top as needed.
-//
-//
 // equivalent to:
-//
+
 // int n = 9;
 // int c = 0;
 // while (n != 1) {
@@ -29,7 +26,7 @@
 BIPUSH 0x00 // counter, c 
 BIPUSH 3    // c, n
 LOOP:
-    // c, n 
+    // c, n A
     // check if n == 1
         DUP             // c, n, n
         BIPUSH 0x01     // c, n, n, 1

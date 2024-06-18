@@ -1,0 +1,60 @@
+.main
+    IN            // Read character 'x' onto the stack
+    IN            // Read character 'y' onto the stack
+    BIPUSH 0x30   // Push ASCII value of '0'
+    ISUB          // Subtract to convert 'y' from ASCII to integer
+    DUP           // Duplicate 'y' for addition loop
+    BIPUSH 0x00   // Push 0 to initialize sum for 2*y
+  
+  DOUBLE_Y:
+    DUP           // Duplicate y to check against 0
+    BIPUSH 0x00   // Push 0 to compare
+    IFEQ ADD_DONE // Jump to ADD_DONE if y is 0 (double done)
+    SWAP          // Swap top two values (0, y) -> (y, 0)
+    BIPUSH 0x01   // Push 1 to add to sum
+    IADD          // Add 1 to sum
+    SWAP          // Swap sum and y to decrement y
+    BIPUSH 0x01   // Push 1 to subtract from y
+    ISUB          // Decrement y by 1
+    GOTO DOUBLE_Y // Loop back to start of DOUBLE_Y
+  
+  ADD_DONE:
+    POP           // Pop the final 0 (from the initial BIPUSH)
+    SWAP          // Bring 'x' to top, with 2*y below it
+  
+  LOOP:
+    DUP           // Duplicate x to keep it on stack for addition
+    OUT           // Print character x
+    DUP           // Duplicate x to add 2
+    BIPUSH 0x02   // Push 2 onto the stack
+    IADD          // Add 2 to x
+    SWAP          // Swap x and 2*y to bring 2*y to the top
+    BIPUSH 0x02   // Push 2 to subtract from 2*y
+    ISUB          // Subtract 2 from 2*y
+    DUP           // Duplicate 2*y to check if we're done
+    BIPUSH 0x00   // Push 0 onto the stack
+    IF_ICMPEQ DONE // If 2*y is 0, we're done
+    SWAP          // Swap x and 2*y to correct positions
+    GOTO LOOP     // Continue the loop
+  
+  DONE:
+    HALT          // Stop execution
+  
+  .end-main
+  
+
+
+// Note that we got the output but there is a loot of unecessary logs due to this broken loop.
+//   Input:
+//     !!
+//     Expected output:
+//     !#%')+-/13579;=?ACEGIKMOQSUWY[]_ac
+//     Actual output:
+//     ��������	
+//     !#%')+-/13579;=?ACEGIKMOQSUWY[]_acegikmoqsuwy{}���{...}
+//     !#%')+-/13579;=?ACEGIKMOQSUWY[]_acegikmoqsuwy{}���{...}
+//     !#%')+-/13579;=?ACEGIKMOQSUWY[]_acegikmoqsuwy{}���{...}
+//     {...more full of nonsense, loop broken}
+
+//   Warning:
+//     The program crashed and exited with code 134.

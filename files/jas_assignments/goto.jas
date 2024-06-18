@@ -1,0 +1,36 @@
+.main
+  IN              // Read character 'x' onto the stack: stack = [x]
+  DUP             // Duplicate 'x' for loop usage: stack = [x, x]
+  IN              // Read character 'y' onto the stack: stack = [x, x, y]
+  DUP             // Duplicate y_int for loop control: stack = [x, x, y_int, y_int]
+  DUP		  //stack = [x, x, y_int, y_int,y_int]
+  IADD		//stack = [x, x, y_int, y_int*2]
+  BIPUSH 0x00   //stack = [x, x, y_int, y_int*2]
+  IF_ICMPEQ DONE  // If 2*y is 0, finish . stack = [x, x, y_int]
+  SWAP		//stack = [x, y_int,x]
+
+
+LOOP: 
+  DUP             // Duplicate x for printing, Stack: x, y*2, x , x 
+  OUT             // Output x, stack : x, y*2, x
+  BIPUSH 0x02     // Push 2, Stack: x, y*2, x, 2
+  IADD            // Add 2 to x, Stack: y*2, x+2
+  SWAP            // Swap x+2 and y, Stack: x+2,y*2
+  DUP             // Duplicate y for comparison, Stack: x+2,y*2,y*2 
+  BIPUSH 0x01     // Push 1, Stack: x+2,y*2,y*2,1
+  ISUB            // Subtract 1 from y, Stack: x+2,y*2,(y*2)-1
+  DUP             // Duplicate y-1 for zero check, Stack: x+2,y*2,(y*2)-1,(y*2)-1
+  BIPUSH 0x00     // Push 0 for comparison, Stack: x+2,y*2,(y*2)-1,(y*2)-1,0
+  IF_ICMPEQ DONE  // If y-1 == 0, exit loop Stack: Stack: x+2,y*2,(y*2)-1
+  SWAP            // Swap y and x+2, Stack: x+2,(y*2)-1,y*2
+  POP	           //Stack: x+2,(y*2)-1
+  SWAP            // Swap x+2 and y-1, Stack: (y*2)-1,x+2
+  GOTO LOOP       // Continue loop
+DONE:
+  POP
+  IADD
+  BIPUSH 0x01
+  ISUB
+  OUT
+  HALT            // Stop the program
+.end-main

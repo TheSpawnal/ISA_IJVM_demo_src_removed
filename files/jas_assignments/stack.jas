@@ -1,0 +1,40 @@
+.main
+    // Read in x, y, z
+    IN          // x (stack: x)
+    IN          // y (stack: x y)
+    DUP         // Duplicate y to preserve it (stack: x y y)
+    DUP
+    DUP
+    DUP
+    IN          // z (stack: x y y z)
+
+    // Output z + 3
+    DUP         // Duplicate z (stack: x y y y y y z z)
+    BIPUSH 3    // Push 3 (stack: x y y y y y z z 3)
+    IADD        // Add z and 3 (stack: x y y y y y z z+3)
+    OUT         // Output z + 3 (stack: x y y y y y z)
+
+    // Output y + z
+    SWAP        // Swap y and z (stack: x y y y y z y)
+    IADD        // Add y and z (stack: x y y y y z+y)
+    DUP         // Dupplicate(z+y) (stack: x y y y y z+y z+y)
+    OUT         // Output y + z (stack: x y y y y z+y)
+
+    // Output z - y
+    SWAP        //Swap y and (z+y) (stack: x y y y (z+y) y)
+    ISUB        // Subtract y from z+y (stack: x y y y (z+y-y))
+    SWAP        //Swap y and (z+y-y) (stack: x y y (z+y-y) y)
+    ISUB        //Subtract y from (z+y-y) (stack: x y y  (z+y-y-y))
+    DUP         //duplicate (z+y-y-y) (stack: x y y (z+y-y-y) (z+y-y-y))
+    OUT         //  output (z+y-y-y)  (stack: x y y (z+y-y-y) )
+
+    // Output x + y + z - 10
+    IADD        // Add (z+y-y-y) and y (stack: x y (y+(z+y-y-y)) )
+    IADD        // Add (y+z+y-y-y) and y (stack: x y+(y+(z+y-y-y)) )
+    IADD        // Add x and y+(y+(z+y-y-y))
+    BIPUSH 10   
+    ISUB        
+    OUT         // Output x + y + z - 10 (stack: )
+
+    HALT        
+.end-main

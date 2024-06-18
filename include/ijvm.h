@@ -35,7 +35,7 @@
 #define OP_SWAP           ((byte_t) 0x5F)
 #define OP_WIDE           ((byte_t) 0xC4)
 
-// Bonus assignment instructions
+// Bonus test instructions
 #define OP_TAILCALL       ((byte_t) 0xCB)
 
 #define OP_NEWARRAY       ((byte_t) 0xD1)
@@ -52,7 +52,6 @@
 /**
  * DO NOT MODIFY THIS FILE.
  **/
-
 
 
 /**
@@ -150,9 +149,9 @@ ijvm* init_ijvm_std(char *binary_path);
 void run(ijvm* m);
 
 
-// Below: methods needed for bonus assignments
+// Below: methods needed for bonus tests
 
-// Only needed for Tailcall assignment: 
+// Only needed for Tailcall test: 
 //
 // Get some measure indicative of the (call)stack size
 // If you have a single continous stack this can be
@@ -163,7 +162,7 @@ void run(ijvm* m);
 int get_call_stack_size(ijvm* m);
 
 
-// Only needed for garbage collection assignment
+// Only needed for garbage collection test
 // Checks if reference is a freed heap cell
 // If a heap cell is garbage, then after a garbage collection run
 // this method must return true on a reference to that cell
