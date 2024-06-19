@@ -3,7 +3,8 @@
 #include "ijvm.h"
 #include "util.h" 
 #include <ctype.h>
- 
+
+
 void initialize_stack(IJVMStack *stack) {
     stack->elements = (word_t *)malloc(INITIAL_STACK_SIZE * sizeof(word_t));
     stack->top = -1;
@@ -25,6 +26,83 @@ word_t pop(IJVMStack *stack) {
     }
     return stack->elements[stack->top--];
 }
+
+void handle_GOTO(ijvm *m) {
+    d3printf("Stack size before OP_GOTO: %d\n", m->stack.top);
+    if (m->program_counter + 2 >= m->text_size || m->program_counter < 0) {
+    //if (m->program_counter + 2 >= m->text_size) {
+        fprintf(stderr, "Error: program_counter exceeds text size\n");
+        exit(EXIT_FAILURE);
+    }
+    //signed short offset = read_uint16(&m->text[m->program_counter + 1]);
+    signed short offset = (signed short)read_uint16(&m->text[m->program_counter + 1]);
+    d3printf("GOTO: Program counter before calculation: %d, offset: %d\n", m->program_counter, offset);
+    m->program_counter += offset;
+    m->program_counter -= 1;
+    d3printf("GOTO: Program counter after calculation: %d\n", m->program_counter);
+    d3printf("Stack size after OP_GOTO: %d\n", m->stack.top);
+}
+
+void handle_IFEQ(ijvm *m) {
+    d3printf("Stack size before OP_IFEQ: %d\n", m->stack.top );
+    //if (m->program_counter + 2 >= m->text_size || m->program_counter < 0) {
+    if (m->program_counter + 2 >= m->text_size ) {
+        fprintf(stderr, "Error: program_counter exceeds text size\n");
+        exit(EXIT_FAILURE);
+    }
+    signed short offset = read_int16(&m->text[m->program_counter + 1]);
+    word_t value = pop(&m->stack);
+    d3printf("IFEQ: Value popped: %d, offset: %d\n", value, offset);
+    if (value == 0) {
+        m->program_counter += offset;
+    } else {
+        m->program_counter += 3;
+    }
+    m->program_counter -= 1;
+    d3printf("IFEQ: Program counter after evaluation: %d\n", m->program_counter);
+}
+
+void handle_IFLT(ijvm *m) {
+    d3printf("Stack size before OP_IFLT: %d\n", m->stack.top);
+    if (m->program_counter + 2 >= m->text_size || m->program_counter < 0) {
+        fprintf(stderr, "Error: program_counter exceeds text size\n");
+        exit(EXIT_FAILURE);
+    }
+    signed short offset = read_int16(&m->text[m->program_counter + 1]);
+    //signed short offset = (signed short)read_uint16_t(&m->text[m->program_counter + 1]);
+    word_t value = pop(&m->stack);
+    d3printf("IFLT: Value popped: %d, offset: %d\n", value, offset);
+    if (value < 0) {
+        m->program_counter += offset;
+    } else {
+        m->program_counter += 3;
+    }
+    m->program_counter -= 1;
+    d3printf("IFLT: Program counter after evaluation: %d\n", m->program_counter);
+}
+
+
+void handle_IF_ICMPEQ(ijvm *m) {
+    d3printf("Stack size before OP_IF_ICMPEQ: %d\n", m->stack.top );
+    if (m->program_counter + 2 >= m->text_size) {
+        fprintf(stderr, "Error: program_counter exceeds text size\n");
+        exit(EXIT_FAILURE);
+    }
+    signed short offset = read_int16(&m->text[m->program_counter + 1]);
+    //signed short offset = (signed short)read_uint16_t(&m->text[m->program_counter + 1]);
+    word_t value1 = pop(&m->stack);
+    word_t value2 = pop(&m->stack);
+    d3printf("IF_ICMPEQ: Values popped: %d, %d, offset: %d\n", value1, value2, offset);
+    if (value1 == value2) {
+        m->program_counter += offset;
+    } else {
+        m->program_counter += 3;
+    }
+    m->program_counter -= 1;
+    d3printf("IF_ICMPEQ: Program counter after evaluation: %d\n", m->program_counter);
+}
+
+
 
 ijvm* init_ijvm(char *binary_path, FILE* input, FILE* output) {
     ijvm* m = (ijvm *)malloc(sizeof(ijvm));
@@ -131,7 +209,13 @@ word_t get_local_variable(ijvm* m, int i) {
 }
 
 void step(ijvm* m) {
+    if (finished(m)) {
+        d3printf("Program termination\n");
+        return;
+    }
+    
     byte_t opcode = get_instruction(m);
+    d3printf("Current instruction: %x\n", opcode);
 
     switch (opcode) {
         case OP_BIPUSH: {
@@ -198,6 +282,18 @@ void step(ijvm* m) {
             push(&m->stack, (word_t)(value == EOF ? 0 : value));
             break;
         }
+        case OP_GOTO:
+            handle_GOTO(m);
+            break;
+        case OP_IFEQ:
+            handle_IFEQ(m);
+            break;
+        case OP_IFLT:
+            handle_IFLT(m);
+            break;
+        case OP_IF_ICMPEQ:
+            handle_IF_ICMPEQ(m);
+            break;
 
             default:
                 fprintf(m->out, "Unknown instruction: 0x%02x\n", opcode);

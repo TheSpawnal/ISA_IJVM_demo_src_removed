@@ -1,0 +1,48 @@
+.main
+    .var
+        x 
+        y 
+        z 
+    .end-var
+    
+    // Read in x, y, z
+    IN          // Read x (stack: x)
+    ISTORE x    // Store x in variable x (stack: )
+
+    IN          // Read y (stack: y)
+    ISTORE y    // Store y in variable y (stack: )
+
+    IN          // Read z (stack: z)
+    ISTORE z    // Store z in variable z (stack: )
+
+    // Output x + 3
+    ILOAD x     // Load x (stack: x)
+    BIPUSH 3    // Push 3 (stack: x 3)
+    IADD        // Add x and 3 (stack: x+3)
+    OUT         // Output x+3 (stack: )
+
+    // Output x + z
+    ILOAD x     // Load x (stack: x)
+    ILOAD z     // Load z (stack: x z)
+    IADD        // Add x and z (stack: x+z)
+    OUT         // Output x+z (stack: )
+
+    // Output z - y
+    ILOAD z     // Load z (stack: z)
+    ILOAD y     // Load y (stack: z y)
+    ISUB        // Subtract y from z (stack: z-y)
+    OUT         // Output z-y (stack: )
+
+    // Output x + y + z - 10
+    ILOAD x     // Load x (stack: x)
+    ILOAD y     // Load y (stack: x y)
+    IADD        // Add x and y (stack: x+y)
+    ILOAD z     // Load z (stack: x+y z)
+    IADD        // Add (x+y) and z (stack: x+y+z)
+    BIPUSH 10   // Push 10 (stack: x+y+z 10)
+    ISUB        // Subtract 10 from (x+y+z) (stack: x+y+z-10)
+    OUT         // Output x+y+z-10 (stack: )
+
+    HALT        // Halt the emulator
+.end-main
+  
