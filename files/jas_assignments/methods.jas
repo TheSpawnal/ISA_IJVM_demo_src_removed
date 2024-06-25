@@ -1,0 +1,69 @@
+// This JAS code uses methods
+// This JAS program does the following:
+
+// int is_even(int x) {
+//   if (x == 0)
+//     return 'T';
+//   return is_odd(x - 1);
+// }
+
+// int is_odd(int x) {
+//   if (x == 0)
+//     return 'F';
+//   return is_even(x - 1);
+// }
+
+// read in x
+// print is_even(x) // this uses x as a number, so '0' is 48. 
+
+// This is of course a nonsense way of computing whether something is even
+// (use AND x01 for a much quicker way), but it serves to introduce the intricacies of methods in JAS. 
+// Why does this work? On the number 2, is_even(2) -> is_odd(1) -> is_even(0), which will give 'T'. 
+// On any number, is_even, will keep peeling of 2 via calls to is_even and is_odd until we reach either  is_odd(0) or is_even(0).
+// The program must compute in the above way, is it not enough if your program passes the tests but computes in another way.
+
+.constant
+    objref 0xCAFE
+.end-constant
+
+.main
+.var 
+i_x
+.end-var
+    IN //read the char and push to the stack
+    ISTORE i_x //store in local variable i_x
+    LDC_W objref //push the object reference to the stack
+    ILOAD i_x //push the value of i_x to the stack
+    INVOKEVIRTUAL is_even //call the method is_even
+    OUT 
+    HALT
+.end-main
+
+.method is_even(x)
+    ILOAD x
+    IFEQ is_even_return_true //if x == 0, return 'T'
+    LDC_W objref
+    ILOAD x
+    BIPUSH 0x1
+    ISUB
+    INVOKEVIRTUAL is_odd // recurse to is_odd(x-1)
+    IRETURN
+    is_even_return_true:
+        BIPUSH 0x54
+        IRETURN
+.end-method
+
+.method is_odd(x)
+    ILOAD x
+    IFEQ is_odd_return_false //if x == 0, return 'F'
+    LDC_W objref
+    ILOAD x
+    BIPUSH 0x1
+    ISUB
+    
+    INVOKEVIRTUAL is_even // recurse to is_even(x-1)
+    IRETURN
+    is_odd_return_false:
+        BIPUSH 0x46
+        IRETURN
+.end-method

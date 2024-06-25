@@ -11,10 +11,37 @@ void initialize_stack(IJVMStack *stack) {
     stack->size = INITIAL_STACK_SIZE;
 }
 
+void init_main_frame(ijvm* m){
+    StackFrame* main_frame = (StackFrame *)malloc(sizeof(StackFrame));
+    if (!main_frame) {
+        fprintf(stderr, "Failed to allocate memory\n");
+        exit(EXIT_FAILURE);
+    }
+    main_frame->local_variables = (LocalVariable *)malloc(MAX_LOCAL_VARIABLES * sizeof(LocalVariable));
+    if (!main_frame->local_variables) {
+        fprintf(stderr, "Failed to allocate memory\n");
+        exit(EXIT_FAILURE);
+    }
+    main_frame->local_variables_count = MAX_LOCAL_VARIABLES;
+    for (int i = 0; i < MAX_LOCAL_VARIABLES; i++) {
+        main_frame->local_variables[i].value = 0;
+        main_frame->local_variables[i].is_initialized = false;
+    }
+    main_frame->previous_frame = NULL;
+    m->frames_stack[++m->frames_stack_top] = main_frame;
+
+}
+
 void push(IJVMStack *stack, word_t value) {
     if (stack->top == stack->size - 1) {
-        stack->size *= 2;
-        stack->elements = (word_t *)realloc(stack->elements, stack->size * sizeof(word_t));
+        int newSize = stack->size * 2;
+        word_t *newElements = (word_t *)realloc(stack->elements, newSize * sizeof(word_t));
+        if (newElements == NULL) {
+            fprintf(stderr, "Failed to allocate memory\n");
+            exit(EXIT_FAILURE);
+        }
+        stack->elements = newElements;
+        stack->size = newSize;
     }
     stack->elements[++stack->top] = value;
 }
@@ -27,6 +54,79 @@ word_t pop(IJVMStack *stack) {
     return stack->elements[stack->top--];
 }
 
+word_t get_local_variable(ijvm* m, int i) {
+ //The value of the current instruction represented as a byte_t.
+ //This should NOT increase the program counter.
+    if(m->frames_stack_top < 0 || m->frames_stack_top >= MAX_FRAMES){
+        fprintf(m->out, "Error get_local_variable : stack frame pointer out of bounds \n");
+        exit(EXIT_FAILURE);
+    }
+    StackFrame* current_frame = m->frames_stack[m->frames_stack_top];
+    if (i < 0 || i >= current_frame->local_variables_count) {
+        fprintf(stderr, "Error: Local variable index %d out of bounds. Max index is %d.\n", i, current_frame->local_variables_count - 1);
+        exit(EXIT_FAILURE);} // or return a special error code if you prefer
+    if(!current_frame->local_variables[i].is_initialized){
+        fprintf(stderr, "Error: Local variable at index %d not initialized.\n", i);
+        exit(EXIT_FAILURE);}
+    return current_frame->local_variables[i].value;
+}
+
+bool set_local_variable(ijvm* m, int i, word_t value) {
+    if(m->frames_stack_top < 0 || m->frames_stack_top >= MAX_FRAMES){
+        fprintf(m->out, "Error set_local_variable : stack frame pointer out of bounds \n");
+        exit(EXIT_FAILURE);
+    }
+    StackFrame* current_frame = m->frames_stack[m->frames_stack_top];
+    if (i < 0 || i >= current_frame->local_variables_count) {
+        fprintf(stderr, "Error: Local variable index %d out of bounds. Max index is %d.\n", i, current_frame->local_variables_count - 1);
+        return false;
+    }
+    current_frame->local_variables[i].value = value;
+    current_frame->local_variables[i].is_initialized = true;
+    return true;
+}
+
+uint16_t fetch_next_short(ijvm* m){
+    uint16_t result = 0;
+    uint8_t numbuf[2];
+    numbuf[0] = m->text[m->program_counter + 1];
+    numbuf[1] = m->text[m->program_counter + 2];
+    result = read_uint16(numbuf);
+    m->program_counter += 2;
+    return result;
+}
+
+//word_t fetch_next_byte(ijvm* m){
+uint8_t fetch_next_byte(ijvm* m){
+    if(m->program_counter + 1 >= m->text_size){
+        fprintf(stderr, "Error: program_counter exceeds text size\n");
+        exit(EXIT_FAILURE);
+    }
+    d4printf("fetch_next_byte: program_counter = %d\n", m->program_counter);
+    d4printf("fetch_next_byte: text_size = %d\n", m->text_size);
+    d4printf("fetch_next_byte: text[program_counter] = %d\n", m->text[m->program_counter]);
+    uint8_t result_fetch_next_bytes = m->text[m->program_counter+1];
+    m->program_counter++;
+    d4printf("fetch_next_byte: result_fetch_next_bytes = %d\n", result_fetch_next_bytes);
+    return result_fetch_next_bytes;
+}
+
+void ensure_local_variables_space(StackFrame* frame, int required_index) {
+    if (required_index >= frame->local_variables_count) {
+        int new_size = required_index + 1; // Or more, depending on your resizing strategy
+        frame->local_variables = realloc(frame->local_variables, new_size * sizeof(LocalVariable));
+        if (!frame->local_variables) {
+            fprintf(stderr, "Error: failed to resize local variables\n");
+            exit(EXIT_FAILURE);
+        }
+        // Initialize the new elements
+        for (int i = frame->local_variables_count; i < new_size; i++) {
+            frame->local_variables[i].value = 0;
+            frame->local_variables[i].is_initialized = false;
+        }
+        frame->local_variables_count = new_size;
+    }
+}
 void handle_GOTO(ijvm *m) {
     d3printf("Stack size before OP_GOTO: %d\n", m->stack.top);
     if (m->program_counter + 2 >= m->text_size || m->program_counter < 0) {
@@ -69,7 +169,6 @@ void handle_IFLT(ijvm *m) {
         exit(EXIT_FAILURE);
     }
     signed short offset = read_int16(&m->text[m->program_counter + 1]);
-    //signed short offset = (signed short)read_uint16_t(&m->text[m->program_counter + 1]);
     word_t value = pop(&m->stack);
     d3printf("IFLT: Value popped: %d, offset: %d\n", value, offset);
     if (value < 0) {
@@ -81,7 +180,6 @@ void handle_IFLT(ijvm *m) {
     d3printf("IFLT: Program counter after evaluation: %d\n", m->program_counter);
 }
 
-
 void handle_IF_ICMPEQ(ijvm *m) {
     d3printf("Stack size before OP_IF_ICMPEQ: %d\n", m->stack.top );
     if (m->program_counter + 2 >= m->text_size) {
@@ -89,7 +187,6 @@ void handle_IF_ICMPEQ(ijvm *m) {
         exit(EXIT_FAILURE);
     }
     signed short offset = read_int16(&m->text[m->program_counter + 1]);
-    //signed short offset = (signed short)read_uint16_t(&m->text[m->program_counter + 1]);
     word_t value1 = pop(&m->stack);
     word_t value2 = pop(&m->stack);
     d3printf("IF_ICMPEQ: Values popped: %d, %d, offset: %d\n", value1, value2, offset);
@@ -102,7 +199,71 @@ void handle_IF_ICMPEQ(ijvm *m) {
     d3printf("IF_ICMPEQ: Program counter after evaluation: %d\n", m->program_counter);
 }
 
+void handle_op_ldc_w( uint16_t index, ijvm* m) {
+    d4printf("Stack size before OP_LDC_W: %d\n", m->stack.top);
+    word_t value = m->constant_pool[index];
+    push(&m->stack, value);
+    d4printf("Stack size after OP_LDC_W: %d\n", m->stack.top);
+}
 
+void handle_op_istore(uint16_t index, ijvm* m) {
+    if (m->frames_stack_top < 0 || m->frames_stack_top >= MAX_FRAMES) {
+        fprintf(stderr, "Invalid frame stack top index\n");
+        exit(EXIT_FAILURE);
+    }
+
+    d4printf("Stack size before OP_IStore: %d\n", m->stack.top);
+    d4printf("Attempting to store to local variable at index %d\n", index);
+
+    StackFrame* currentFrame = m->frames_stack[m->frames_stack_top];
+    ensure_local_variables_space(currentFrame, index);
+
+    if (index >= currentFrame->local_variables_count) {
+        fprintf(stderr, "Local variable index %d out of bounds\n", index);
+        exit(EXIT_FAILURE);
+    }
+
+    if (m->stack.top < 0) {
+        fprintf(stderr, "Stack underflow error\n");
+        exit(EXIT_FAILURE);
+    }
+
+    word_t value = pop(&m->stack);
+    currentFrame->local_variables[index].value = value;
+    currentFrame->local_variables[index].is_initialized = true;
+
+    d4printf("Stored value %x to local variable at index %d\n", value, index);
+    d4printf("Stack size after OP_ISTORE: %d\n", m->stack.top);
+}
+
+void handle_op_iload(uint16_t index, ijvm* m) {
+    if (m->frames_stack_top < 0 || m->frames_stack_top >= MAX_FRAMES) {
+        fprintf(stderr, "Invalid frame stack top index\n");
+        exit(EXIT_FAILURE);
+    }
+    d4printf("Stack size before OP_ILOAD: %d\n", m->stack.top);
+    ensure_local_variables_space(m->frames_stack[m->frames_stack_top], index);
+    StackFrame* currentFrame = m->frames_stack[m->frames_stack_top];
+    if (index >= currentFrame->local_variables_count || !currentFrame->local_variables[index].is_initialized) {
+        fprintf(stderr, "Uninitialized or out-of-bounds local variable access at index %d\n", index);
+        exit(EXIT_FAILURE);
+    }
+    word_t value = currentFrame->local_variables[index].value;
+    push(&m->stack, value);
+    d4printf("Stack size after OP_ILOAD: %d\n", m->stack.top);
+}
+
+void handle_op_iinc(ijvm* m, uint16_t index, int8_t increment){
+    d4printf("Stack size before OP_IINC: %d\n", m->stack.top);
+    d4printf("Attempting to increment local variable at index %d by %d\n", index, increment);
+    StackFrame* currentFrame = m->frames_stack[m->frames_stack_top];
+    ensure_local_variables_space(currentFrame, index + 1);
+    word_t value = get_local_variable(m, index);
+    value += increment;
+    set_local_variable(m, index, value);
+    d4printf("Incremented local variable at index %d to %d\n", index, value);
+    d4printf("Stack size after OP_IINC: %d\n", m->stack.top);
+}
 
 ijvm* init_ijvm(char *binary_path, FILE* input, FILE* output) {
     ijvm* m = (ijvm *)malloc(sizeof(ijvm));
@@ -160,6 +321,7 @@ ijvm* init_ijvm(char *binary_path, FILE* input, FILE* output) {
     fclose(file);
 
     initialize_stack(&m->stack);
+    init_main_frame(m); // Initialize the main method frame
 
     return m;
 }
@@ -201,11 +363,6 @@ word_t tos(ijvm* m) {
 
 bool finished(ijvm* m) {
     return (m->program_counter >= m->text_size) || (m->halted);
-}
-
-word_t get_local_variable(ijvm* m, int i) {
-  // TODO: implement me
-  return 0;
 }
 
 void step(ijvm* m) {
@@ -295,10 +452,56 @@ void step(ijvm* m) {
             handle_IF_ICMPEQ(m);
             break;
 
-            default:
-                fprintf(m->out, "Unknown instruction: 0x%02x\n", opcode);
-                m->halted = true;
-                break;
+        case OP_LDC_W:{
+            uint16_t index = fetch_next_short(m);
+            handle_op_ldc_w(index,m);
+            break;
+        }
+        case OP_ISTORE:{
+            uint16_t index = fetch_next_byte(m);
+            handle_op_istore(index, m);
+            break;
+        }
+        case OP_ILOAD:{
+            uint16_t index = fetch_next_byte(m);
+            handle_op_iload(index, m);
+            break;
+        }
+        case OP_IINC:{
+        uint16_t index = fetch_next_byte(m);
+        int8_t increment_value = (int8_t) fetch_next_byte(m);
+        handle_op_iinc(m, index, increment_value);
+        break;
+        }
+        case OP_WIDE: {
+            uint8_t next_opcode = fetch_next_byte(m);
+            switch(next_opcode) {
+                case OP_ILOAD: {
+                    uint16_t index = fetch_next_short(m);
+                    handle_op_iload(index, m);
+                    break;
+                }
+                case OP_ISTORE: {
+                    uint16_t index = fetch_next_short(m);
+                    handle_op_istore(index, m);
+                    break;
+                }
+                case OP_IINC: {
+                    uint16_t index = fetch_next_short(m);
+                    int8_t increment_value = (int8_t)fetch_next_byte(m);
+                    handle_op_iinc(m, index, increment_value);
+                    break;
+                }
+                default:
+                    fprintf(m->out, "Error: Invalid instruction after WIDE\n");
+                    m->halted = true;
+            }
+            break;
+        }
+        default:
+            fprintf(m->out, "Unknown instruction: 0x%02x\n", opcode);
+            m->halted = true;
+            break;
     }
     m->program_counter++;
 }

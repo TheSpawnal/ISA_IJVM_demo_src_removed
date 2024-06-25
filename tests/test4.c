@@ -230,10 +230,8 @@ int main(void)
     RUN_TEST(test_simple_load);
     RUN_TEST(test_complex_load);
     RUN_TEST(test_iteration_load);
-
     RUN_TEST(test_iinc);
     RUN_TEST(test_loadstore);
-
     RUN_TEST(test_wide);
     RUN_TEST(test_wide_alternate);
     RUN_TEST(test_wide_check); 

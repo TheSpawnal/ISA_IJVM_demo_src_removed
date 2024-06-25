@@ -1,0 +1,164 @@
+// This JAS code uses methods
+// This JAS program does the following:
+
+// int is_even(int x) {
+//   if (x == 0)
+//     return 'T';
+//   return is_odd(x - 1);
+// }
+
+// int is_odd(int x) {
+//   if (x == 0)
+//     return 'F';
+//   return is_even(x - 1);
+// }
+
+// read in x
+// print is_even(x) // this uses x as a number, so '0' is 48. 
+
+// This is of course a nonsense way of computing whether something is even
+// (use AND x01 for a much quicker way), but it serves to introduce the intricacies of methods in JAS. 
+// Why does this work? On the number 2, is_even(2) -> is_odd(1) -> is_even(0), which will give 'T'. 
+// On any number, is_even, will keep peeling of 2 via calls to is_even and is_odd until we reach either  is_odd(0) or is_even(0).
+// The program must compute in the above way, is it not enough if your program passes the tests but computes in another way.
+
+.constant
+    objref 0xCAFE // needed for invoking methods
+.end-constant
+
+.main
+    IN // read in x
+    LDC_W objref // load the object reference
+    INVOKEVIRTUAL is_even // invoke the method
+    OUT // print the result T or F
+    HALT 
+.end-main
+
+.method is_even(x)
+    ILOAD x // load x
+    IFEQ ZERO // check if x == 0
+    LDC_W objref // load the reference for method call
+    ILOAD x // load x
+    BIPUSH 0x1 // load and push 1
+    ISUB // subtract 1 from x
+    INVOKEVIRTUAL is_odd // call is_odd recursively <- MUTUAL RECURSION
+    IRETURN //return result from is_odd
+ZERO:
+    BIPUSH 0x54 // push 'T'
+    IRETURN
+.end-method
+
+.method is_odd(x)
+    ILOAD x // load x
+    IFEQ ZERO_1 // check if x == 0
+    LDC_W objref // load the reference for method call
+    ILOAD x // load x
+    BIPUSH 0x1 // load and push 1
+    ISUB // subtract 1 from x
+    INVOKEVIRTUAL is_even // call is_even recursively <- MUTUAL RECURSION
+    IRETURN//return result from is_even 
+ZERO_1:
+    BIPUSH 0x46 // push 'F'
+    IRETURN
+.end-method
+
+
+
+// behavior X = 32
+// Input:
+    
+//     Expected output:
+//     T
+//     Actual output:
+//     Stack size: 8192
+//     Stack size: 16384
+//     Stack size: 32768
+//     Stack size: 65536
+//     Stack size: 131072
+//     Stack size: 262144
+//     T
+
+// behavior X = 33
+// Input:
+//     !
+//     Expected output:
+//     F
+//     Actual output:
+//     Stack size: 8192
+//     Stack size: 16384
+//     Stack size: 32768
+//     Stack size: 65536
+//     Stack size: 131072
+//     Stack size: 262144
+//     T
+
+// behavior X = 48
+// Input:
+//     0
+//     Expected output:
+//     T
+//     Actual output:
+//     Stack size: 8192
+//     Stack size: 16384
+//     Stack size: 32768
+//     Stack size: 65536
+//     Stack size: 131072
+//     Stack size: 262144
+//     T
+
+// behavior X = 49
+// Input:
+//     1
+//     Expected output:
+//     F
+//     Actual output:
+//     Stack size: 8192
+//     Stack size: 16384
+//     Stack size: 32768
+//     Stack size: 65536
+//     Stack size: 131072
+//     Stack size: 262144
+//     T
+
+// behavior X = 123
+// Input:
+//     {
+//     Expected output:
+//     F
+//     Actual output:
+//     Stack size: 8192
+//     Stack size: 16384
+//     Stack size: 32768
+//     Stack size: 65536
+//     Stack size: 131072
+//     Stack size: 262144
+//     T
+
+// behavior X = 124
+// Input:
+//     |
+//     Expected output:
+//     T
+//     Actual output:
+//     Stack size: 8192
+//     Stack size: 16384
+//     Stack size: 32768
+//     Stack size: 65536
+//     Stack size: 131072
+//     Stack size: 262144
+//     T
+
+// behavior X = 106
+// Input:
+//     j
+//     Expected output:
+//     T
+//     Actual output:
+//     Stack size: 8192
+//     Stack size: 16384
+//     Stack size: 32768
+//     Stack size: 65536
+//     Stack size: 131072
+//     Stack size: 262144
+//     T
+

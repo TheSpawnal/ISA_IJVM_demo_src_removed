@@ -4,7 +4,7 @@
 
 // This file defines debug print macros and helper functions for endianness.
 
-#define DEBUG_LEVEL 3 // change me to change debug level
+#define DEBUG_LEVEL 5 // change me to change debug level
 
 /* Adjust the above value to 0 to 5 to control debug prints.
 
