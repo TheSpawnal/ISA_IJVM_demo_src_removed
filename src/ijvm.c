@@ -127,6 +127,60 @@ void ensure_local_variables_space(StackFrame* frame, int required_index) {
         frame->local_variables_count = new_size;
     }
 }
+void handle_invokevirtual(uint16_t index,ijvm* m){
+    //fetch the method adress from the constant pool
+    uint32_t method_adress = get_constant(m, index);
+    uint16_t arg_count = read_uint16(&m->text[method_adress]);
+    uint16_t local_var_size= read_uint16(&m->text[method_adress + 2]);
+    uint16_t code_start  = method_adress + 4; 
+
+    //create a new stack frame for the method call
+    StackFrame* new_frame = (StackFrame *)malloc(sizeof(StackFrame));
+    if(!new_frame){
+        fprintf(stderr, "Error: failed to allocate memory for new frame\n");
+        exit(EXIT_FAILURE);
+    }
+    new_frame->local_variables = (LocalVariable *)malloc(local_var_size * sizeof(LocalVariable));
+    if(!new_frame->local_variables){
+        fprintf(stderr, "Error: failed to allocate memory for local variables\n");
+        exit(EXIT_FAILURE);
+    }
+    new_frame->local_variables_count = local_var_size;
+    for (int i = 0 ; i < local_var_size; i++) {
+        new_frame->local_variables[i].value = 0;
+        new_frame->local_variables[i].is_initialized = false;
+    }
+    //transfert arguments from the stack to the new frame
+    for (int i = arg_count; i > 0; i--) {
+        word_t value = pop(&m->stack);
+        new_frame->local_variables[i].value = value;
+        new_frame->local_variables[i].is_initialized = true;
+    }   
+    //save the caller's state in the new frame
+    new_frame->previous_frame = m->frames_stack[m->frames_stack_top];
+    new_frame->saved_program_counter = m->program_counter + 3; // Adjust PC after the whole instruction
+    new_frame->saved_frame_pointer = m->frame_pointer;
+    m->frames_stack[++m->frames_stack_top] = new_frame;
+    m->frame_pointer = m->frames_stack_top;
+    m->program_counter = code_start;
+}
+
+void handle_ireturn(ijvm* m){
+    //get the current frame
+    StackFrame* current_frame = m->frames_stack[m->frames_stack_top];
+    //retrieve the return value from the top of the current stack frame
+    word_t return_value = pop(&m->stack);
+    //restore the caller's state (local variables, pc, stack pter)
+    m->frames_stack_top--;
+    StackFrame* previous_frame = m->frames_stack[m->frames_stack_top];
+    m->program_counter = current_frame->saved_program_counter;
+    m->frame_pointer = current_frame->saved_frame_pointer;
+    //place the return value on the top of the callers stack 
+    push(&m->stack, return_value);
+    //free the current frame
+    free(current_frame->local_variables);
+    free(current_frame);
+}
 void handle_GOTO(ijvm *m) {
     d3printf("Stack size before OP_GOTO: %d\n", m->stack.top);
     if (m->program_counter + 2 >= m->text_size || m->program_counter < 0) {
@@ -496,6 +550,15 @@ void step(ijvm* m) {
                     fprintf(m->out, "Error: Invalid instruction after WIDE\n");
                     m->halted = true;
             }
+            break;
+        }
+        case OP_INVOKEVIRTUAL:{
+            uint16_t index = fetch_next_short(m);
+            handle_invokevirtual(index,m);
+            break;
+        }
+        case OP_IRETURN:{
+            handle_ireturn(m);
             break;
         }
         default:
