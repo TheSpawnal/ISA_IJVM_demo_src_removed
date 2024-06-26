@@ -8,9 +8,9 @@
 /**
  * All the state of your IJVM machine goes in this struct!
  **/
-#define INITIAL_STACK_SIZE 16
-#define MAX_LOCAL_VARIABLES 256
-#define MAX_FRAMES 1024
+#define INITIAL_STACK_SIZE 64
+#define MAX_LOCAL_VARIABLES 516
+#define MAX_FRAMES 2048
 
 typedef struct {
     word_t value;

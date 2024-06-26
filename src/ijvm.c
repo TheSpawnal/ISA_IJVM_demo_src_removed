@@ -4,11 +4,19 @@
 #include "util.h" 
 #include <ctype.h>
 
-
-void initialize_stack(IJVMStack *stack) {
-    stack->elements = (word_t *)malloc(INITIAL_STACK_SIZE * sizeof(word_t));
-    stack->top = -1;
+// void initialize_stack(IJVMStack *stack) {
+//     stack->elements = (word_t *)malloc(INITIAL_STACK_SIZE * sizeof(word_t));
+//     stack->top = -1;
+//     stack->size = INITIAL_STACK_SIZE;
+// }
+void initialize_stack(IJVMStack* stack){
     stack->size = INITIAL_STACK_SIZE;
+    stack->elements = (word_t *)malloc(stack->size * sizeof(word_t));
+    if(!stack->elements){
+        fprintf(stderr, "Failed to allocate memory for stack elements\n");
+        exit(EXIT_FAILURE);
+    }
+    stack->top = -1;
 }
 
 StackFrame* initialize_frame(ijvm* m, int num_locals, bool is_main) {
@@ -16,36 +24,30 @@ StackFrame* initialize_frame(ijvm* m, int num_locals, bool is_main) {
         fprintf(stderr, "Error: frame stack overflow\n");
         exit(EXIT_FAILURE);
     }
-
     StackFrame* frame = (StackFrame *)malloc(sizeof(StackFrame));
     if (!frame) {
         fprintf(stderr, "Failed to allocate memory for frame\n");
         exit(EXIT_FAILURE);
     }
-
     int total_vars = is_main ? MAX_LOCAL_VARIABLES : num_locals;
     frame->local_variables = (LocalVariable *)malloc(total_vars * sizeof(LocalVariable));
     if (!frame->local_variables) {
         fprintf(stderr, "Failed to allocate memory for local variables\n");
         exit(EXIT_FAILURE);
     }
-
     frame->local_variables_count = total_vars;
     for (int i = 0; i < total_vars; i++) {
         frame->local_variables[i].value = 0;
         frame->local_variables[i].is_initialized = false;
     }
-
     frame->saved_program_counter = 0;  // Initialize to 0 or an appropriate value
     frame->saved_frame_pointer = 0;    // Initialize to 0, will be set when the frame is linked
     frame->previous_frame = m->frames_stack_top >= 0 ? m->frames_stack[m->frames_stack_top] : NULL;
-
     if (is_main) {
         m->frames_stack_top = 0; // Reset for the main frame
     } else {
         m->frames_stack[++m->frames_stack_top] = frame; // Push new frame to stack for other cases
     }
-    
     return frame;
 }
 
@@ -59,14 +61,16 @@ StackFrame* create_frame(int num_args, int num_locals, ijvm* m) {
     return initialize_frame(m, total_vars, false);
 }
 
-
-
 void push(IJVMStack *stack, word_t value) {
     if (stack->top == stack->size - 1) {
         int newSize = stack->size * 2;
         word_t *newElements = (word_t *)realloc(stack->elements, newSize * sizeof(word_t));
-        if (newElements == NULL) {
-            fprintf(stderr, "Failed to allocate memory\n");
+        // if (newElements == NULL) {
+        //     fprintf(stderr, "Failed to allocate memory\n");
+        //     exit(EXIT_FAILURE);
+        // }
+        if(!newElements){
+            fprintf(stderr, "Failed to allocate memory for stack elements\n");
             exit(EXIT_FAILURE);
         }
         stack->elements = newElements;
@@ -156,23 +160,7 @@ void ensure_local_variables_space(StackFrame* frame, int required_index) {
         frame->local_variables_count = new_size;
     }
 }
-// void handle_invokevirtual(uint16_t index,ijvm* m){
-//     d5printf("Executing OP_INVOKEVIRTUAL...\n");
-//     uint16_t saved_program_counter = m->program_counter +3;
-//     //m->program_counter++;
-//     uint32_t method_address = get_constant(m, index);
-//     uint16_t num_args = read_uint16(&m->text[method_address]);
-//     uint16_t num_locals = read_uint16(&m->text[method_address + 2]);
-//     StackFrame* new_frame = create_frame(num_args, num_locals, m);
-//     for(int i = num_args - 1; i >= 0; i--){
-//         word_t arg = pop(&m->stack);
-//         set_local_variable(m, i, arg);
-//     }
-//     new_frame->saved_program_counter = saved_program_counter;
-//     new_frame->saved_frame_pointer = m->frame_pointer;
-//     m->frame_pointer = m->frames_stack_top;
-//     m->program_counter = method_address + 3;
-// }
+
 void handle_invokevirtual(uint16_t index, ijvm* m){
     d5printf("Executing OP_INVOKEVIRTUAL...\n");
     uint32_t method_address = get_constant(m, index);
@@ -226,11 +214,9 @@ void handle_ireturn(ijvm* m){
 void handle_GOTO(ijvm *m) {
     d3printf("Stack size before OP_GOTO: %d\n", m->stack.top);
     if (m->program_counter + 2 >= m->text_size || m->program_counter < 0) {
-    //if (m->program_counter + 2 >= m->text_size) {
         fprintf(stderr, "Error: program_counter exceeds text size\n");
         exit(EXIT_FAILURE);
     }
-    //signed short offset = read_uint16(&m->text[m->program_counter + 1]);
     signed short offset = (signed short)read_uint16(&m->text[m->program_counter + 1]);
     d3printf("GOTO: Program counter before calculation: %d, offset: %d\n", m->program_counter, offset);
     m->program_counter += offset;
@@ -241,7 +227,6 @@ void handle_GOTO(ijvm *m) {
 
 void handle_IFEQ(ijvm *m) {
     d3printf("Stack size before OP_IFEQ: %d\n", m->stack.top );
-    //if (m->program_counter + 2 >= m->text_size || m->program_counter < 0) {
     if (m->program_counter + 2 >= m->text_size ) {
         fprintf(stderr, "Error: program_counter exceeds text size\n");
         exit(EXIT_FAILURE);
@@ -307,27 +292,21 @@ void handle_op_istore(uint16_t index, ijvm* m) {
         fprintf(stderr, "Invalid frame stack top index\n");
         exit(EXIT_FAILURE);
     }
-
     d4printf("Stack size before OP_IStore: %d\n", m->stack.top);
     d4printf("Attempting to store to local variable at index %d\n", index);
-
     StackFrame* currentFrame = m->frames_stack[m->frames_stack_top];
     ensure_local_variables_space(currentFrame, index);
-
     if (index >= currentFrame->local_variables_count) {
         fprintf(stderr, "Local variable index %d out of bounds\n", index);
         exit(EXIT_FAILURE);
     }
-
     if (m->stack.top < 0) {
         fprintf(stderr, "Stack underflow error\n");
         exit(EXIT_FAILURE);
     }
-
     word_t value = pop(&m->stack);
     currentFrame->local_variables[index].value = value;
     currentFrame->local_variables[index].is_initialized = true;
-
     d4printf("Stored value %x to local variable at index %d\n", value, index);
     d4printf("Stack size after OP_ISTORE: %d\n", m->stack.top);
 }
@@ -366,7 +345,6 @@ ijvm* init_ijvm(char *binary_path, FILE* input, FILE* output) {
     if (!m) {
         return NULL;
     }
-
     FILE *file = fopen(binary_path, "rb");
     if (!file) {
         free(m);
@@ -378,7 +356,6 @@ ijvm* init_ijvm(char *binary_path, FILE* input, FILE* output) {
     m->frames_stack_top = -1;
     m->program_counter = 0;
     m->frame_pointer = 0;
-    
     uint8_t numbuf[4];
     fread(numbuf, sizeof(uint8_t), 4, file);
     uint32_t magic_number = read_uint32(numbuf);
@@ -387,7 +364,6 @@ ijvm* init_ijvm(char *binary_path, FILE* input, FILE* output) {
         free(m);
         return NULL;
     }
-
     fread(numbuf, sizeof(uint8_t), 4, file);
     fread(numbuf, sizeof(uint8_t), 4, file);
     m->constant_pool_size = read_uint32(numbuf) / sizeof(uint32_t);
@@ -397,12 +373,10 @@ ijvm* init_ijvm(char *binary_path, FILE* input, FILE* output) {
         free(m);
         return NULL;
     }
-
     for (unsigned int i = 0; i < m->constant_pool_size; i++) {
         fread(numbuf, sizeof(uint8_t), 4, file);
         m->constant_pool[i] = read_uint32(numbuf);
     }
-
     fread(numbuf, sizeof(uint8_t),4, file);
     fread(numbuf, sizeof(uint8_t),4, file);
     m->text_size = read_uint32(numbuf);
@@ -415,10 +389,8 @@ ijvm* init_ijvm(char *binary_path, FILE* input, FILE* output) {
     }
     fread(m->text, sizeof(byte_t), m->text_size, file);
     fclose(file);
-
     initialize_stack(&m->stack);
     init_main_frame(m); // Initialize the main method frame
-
     return m;
 }
 
