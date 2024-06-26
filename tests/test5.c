@@ -233,15 +233,15 @@ int main(void)
 {
     fprintf(stderr, "*** test5: METHODS ...........\n");
     RUN_TEST(test_invokenoargs);
-    //RUN_TEST(test_invoke1);
-    // RUN_TEST(test_ireturn1);
-    // RUN_TEST(test_invoke2);
-    // RUN_TEST(test_ireturn2);
-    // RUN_TEST(test_frame);
-    // RUN_TEST(test_nested_invoke_simple);
-    // RUN_TEST(test_nested_invoke);
-    // RUN_TEST(test_nested_frame);
-    // RUN_TEST(test_fib);
-    // RUN_TEST(test_recursion);
+    RUN_TEST(test_invoke1);
+    RUN_TEST(test_ireturn1);
+    RUN_TEST(test_invoke2);
+    RUN_TEST(test_ireturn2);
+    RUN_TEST(test_frame);
+    RUN_TEST(test_nested_invoke_simple);
+    RUN_TEST(test_nested_invoke);
+    RUN_TEST(test_nested_frame);
+    RUN_TEST(test_fib);
+    RUN_TEST(test_recursion);
     return END_TEST();
 }
