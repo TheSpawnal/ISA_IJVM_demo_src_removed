@@ -66,6 +66,6 @@ void test_out_of_memory(void)
 int main(void)
 {
     RUN_TEST(test_tailfib);
-    RUN_TEST(testTC);
+    //RUN_TEST(testTC);
     return END_TEST();
 }

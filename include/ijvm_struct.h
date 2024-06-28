@@ -8,9 +8,10 @@
 /**
  * All the state of your IJVM machine goes in this struct!
  **/
-#define INITIAL_STACK_SIZE 64
-#define MAX_LOCAL_VARIABLES 516
-#define MAX_FRAMES 2048
+
+#define INITIAL_STACK_SIZE 256
+#define MAX_LOCAL_VARIABLES 1024  
+#define MAX_FRAMES 66000
 
 typedef struct {
     word_t value;
@@ -43,12 +44,16 @@ typedef struct IJVM {
     byte_t *text;
     uint32_t *constant_pool;
     int frames_stack_top;
+
+    int frames_stack_size;
+
     uint32_t program_counter;
     int frame_pointer;
     bool halted;
     //stack & stack frames \2
     IJVMStack stack;
     StackFrame* frames_stack[MAX_FRAMES];
+    //StackFrame** frames_stack;
 } ijvm;
 
 #endif 

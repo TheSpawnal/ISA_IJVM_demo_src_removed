@@ -14,6 +14,12 @@ void run_calc_inp(char *input, char *expected)
     rewind(inputf);
 
     FILE *out_file = tmpfile();
+
+    if(!inputf || !out_file) {
+        fprintf(stderr, "Error: Could not create temporary files\n");
+        exit(1);
+    }
+
     ijvm* m = init_ijvm("files/advanced/SimpleCalc.ijvm",inputf, out_file);
     assert(m != NULL);
 
@@ -25,7 +31,11 @@ void run_calc_inp(char *input, char *expected)
     fread(buf, 1, 127, out_file);
 
     // Compare output
+    if (strncmp(buf, expected, strlen(expected)) != 0) {
+    fprintf(stderr, "Output mismatch:\n%s\nexpected:\n%s\n", buf, expected);
+    }
     assert(strncmp(buf, expected, strlen(expected)) == 0);
+
 
     destroy_ijvm(m);
     fclose(inputf);
@@ -55,15 +65,28 @@ void test_calc_3(void)
 void test_calc_4(void)
 {
     run_calc_inp("2 2 2 2 2 2 2 2 2 2 2 2 2 2 ************ +?.", "8194\n");
-    //run_calc_inp("2 2 2 2 2 2 2 2 2 2 2 2 2 2 ************ +?.", "4098\n");
+    //run_calc_inp("2 2 2 2 2 2 2 2 2 2 2 2 2 *********** +?.", "4098\n");
+    //run_calc_inp("2 2 2 2 2 2 2 2 2 2 2 2 ********** +?.", "2050\n");
+    //run_calc_inp("2 2 2 2 2 2 2 2 2 2 2 ********* +?.", "1026\n");
+    //run_calc_inp("2 2 2 2 2 2 2 2 2 2 ******** +?.", "514\n");
+    //run_calc_inp("2 2 2 2 2 2 2 2 2 ******* +?.", "258\n");
+    //run_calc_inp("2 2 2 2 2 2 2 2 ****** +?.", "130\n");
+    //run_calc_inp("2 2 2 2 2 2 2 ***** +?.", "66\n");
+    //run_calc_inp("2 2 2 2 2 2 **** +?.", "34\n");
+    //run_calc_inp("2 2 2 2 2 *** +?.", "18\n");
+    //run_calc_inp("2 2 2 2 ** +?.", "10\n");
+    //run_calc_inp("2 2 2 * +?.", "6\n");
+
+
+    
 }
 
 int main(void)
 {
     fprintf(stderr, "*** testadvanced4: CALCULATOR ...\n");
-    //RUN_TEST(test_calc_1);
-    // RUN_TEST(test_calc_2);
-    // RUN_TEST(test_calc_3);
-     RUN_TEST(test_calc_4);
+    RUN_TEST(test_calc_1);
+    RUN_TEST(test_calc_2);
+    RUN_TEST(test_calc_3);
+    RUN_TEST(test_calc_4);
     return END_TEST();
 }
