@@ -170,9 +170,6 @@ void test_nested_invoke(void)
 
 }
 
-
-
-
 void test_nested_frame(void)
 {
     ijvm* m = init_ijvm_std("files/task5/test-nestedinvoke-frame.ijvm");

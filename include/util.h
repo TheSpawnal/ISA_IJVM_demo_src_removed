@@ -4,17 +4,15 @@
 
 // This file defines debug print macros and helper functions for endianness.
 
-#define DEBUG_LEVEL 2 // change me to change debug level
+#define DEBUG_LEVEL 5 // change me to change debug level
 
 /* Adjust the above value to 0 to 5 to control debug prints.
 
 This file defines several macros for debug prints,
 namely dprintf, d2printf, d3printf, d4printf and d5printf.
-
 Which debug prints give outputs and which do not depends on the debug level.
 If the debug level is 0, no debug prints will be printed. If the debug level
 is n, all prints with a debug level less than or equal to n will be printed.
-
 Debug prints which are disabled are not compiled into the program, so they
 do not affect performance.
 

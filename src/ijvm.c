@@ -69,10 +69,10 @@ void push(IJVMStack *stack, word_t value) {
         }
         stack->elements = newElements;
         stack->size = newSize;
-        //fprintf(stderr, "Stack resized to %d elements\n", newSize);
+        d2printf("Stack resized to %d elements\n", newSize);
     }
     stack->elements[++stack->top] = value;
-    //fprintf(stderr, "Pushed value %d to stack. Stack top is now %d\n", value, stack->top);
+    d2printf("Pushed value %d to stack. Stack top is now %d\n", value, stack->top);
 }
 
 word_t pop(IJVMStack *stack) {
@@ -81,7 +81,7 @@ word_t pop(IJVMStack *stack) {
         exit(EXIT_FAILURE);
     }
     word_t value = stack->elements[stack->top];
-    //fprintf(stderr, "Popped value %d from stack. Stack top is now %d\n", value, stack->top);
+    d2printf( "Popped value %d from stack. Stack top is now %d\n", value, stack->top);
     return stack->elements[stack->top--];
 }
 
@@ -92,11 +92,6 @@ word_t get_local_variable(ijvm* m, int i) {
         fprintf(m->out, "Error get_local_variable : stack frame pointer out of bounds \n");
         exit(EXIT_FAILURE);
     }
-    // if(m->frames_stack_top < 0 ){
-    //     fprintf(m->out, "Error get_local_variable : stack frame pointer out of bounds \n");
-    //     exit(EXIT_FAILURE);
-    // }
-    // StackFrame* current_frame = m->frames_stack[m->frames_stack_top];
     StackFrame* current_frame = m->frames_stack[m->frames_stack_top];
     if(i < 0 || i >= current_frame->local_variables_count){
         fprintf(stderr, "Error: Local variable index %d out of bounds. Max index is %d.\n", i, current_frame->local_variables_count - 1);
@@ -130,7 +125,7 @@ bool set_local_variable(ijvm* m, int i, word_t value) {
     return true;
 }
 
-uint16_t fetch_next_short(ijvm* m){
+word_t fetch_next_short(ijvm* m){
     uint16_t result = 0;
     uint8_t numbuf[2];
     numbuf[0] = m->text[m->program_counter + 1];
@@ -141,14 +136,12 @@ uint16_t fetch_next_short(ijvm* m){
 }
 
 word_t fetch_next_byte(ijvm* m){
-//uint8_t fetch_next_byte(ijvm* m){
     if(m->program_counter + 1 >= m->text_size){
         fprintf(stderr, "Error: program_counter exceeds text size\n");
         exit(EXIT_FAILURE);
     }
     d4printf("fetch_next_byte: program_counter = %d\n", m->program_counter);
     d4printf("fetch_next_byte: text_size = %d\n", m->text_size);
-    d4printf("fetch_next_byte: text[program_counter] = %d\n", m->text[m->program_counter]);
     uint8_t result_fetch_next_bytes = m->text[m->program_counter+1];
     m->program_counter++;
     d4printf("fetch_next_byte: result_fetch_next_bytes = %d\n", result_fetch_next_bytes);
@@ -157,13 +150,12 @@ word_t fetch_next_byte(ijvm* m){
 
 void ensure_local_variables_space(StackFrame* frame, int required_index) {
     if (required_index >= frame->local_variables_count) {
-        int new_size = required_index + 1; // Or more, depending on your resizing strategy
+        int new_size = required_index + 1;//index resize strategy 
         frame->local_variables = realloc(frame->local_variables, new_size * sizeof(LocalVariable));
         if (!frame->local_variables) {
             fprintf(stderr, "Error: failed to resize local variables\n");
             exit(EXIT_FAILURE);
         }
-        // Initialize the new elements
         for (int i = frame->local_variables_count; i < new_size; i++) {
             frame->local_variables[i].value = 0;
             frame->local_variables[i].is_initialized = false;
@@ -189,7 +181,6 @@ void handle_invokevirtual(uint16_t index, ijvm* m){
         set_local_variable(m, i, arg);
         d5printf("Arg %d set to %d\n", i, arg);
     }
-
     uint16_t saved_program_counter = m->program_counter;
     m->program_counter = method_address + 3;
     d5printf("PC set to %d, Saved PC: %d\n", m->program_counter, saved_program_counter);
@@ -390,7 +381,7 @@ void handle_tailcall(uint16_t index, ijvm* m) {
 
 
 ijvm* init_ijvm(char *binary_path, FILE* input, FILE* output) {
-    //dprintf("Initializing IJVM...\n");
+    dprintf("Initializing IJVM...\n");
     ijvm* m = (ijvm *)malloc(sizeof(ijvm));
     if (!m) {
         fprintf(stderr, "Failed to allocate memory for ijvm struct\n");
@@ -409,13 +400,12 @@ ijvm* init_ijvm(char *binary_path, FILE* input, FILE* output) {
     m->program_counter = 0;
     m->frame_pointer = 0;
     uint8_t numbuf[4];
-    //word_t numbuf[4];
     fread(numbuf, sizeof(uint8_t), 4, file);
     uint32_t magic_number = read_uint32(numbuf);
-    //dprintf("Magic number: %x\n", magic_number);
+    dprintf("Magic number: %x\n", magic_number);
     if (magic_number != MAGIC_NUMBER) {
         dprintf("Invalid magic number : %x\n", magic_number);
-        //dprintf("Invalid magic number : %u\n", magic_number);
+        dprintf("Invalid magic number : %u\n", magic_number);
         fclose(file);
         free(m);
         return NULL;
@@ -447,17 +437,17 @@ ijvm* init_ijvm(char *binary_path, FILE* input, FILE* output) {
         return NULL;
     }
     fread(m->text, sizeof(byte_t), m->text_size, file);
-    //dprintf("Initialized machine with text size (number of instructions): %d\n", m->text_size);
+    dprintf("Initialized machine with text size (number of instructions): %d\n", m->text_size);
     fclose(file);
-    // dprintf("init_ijvm: m->text.size = %d\n", m->text_size);
-    // dprintf("init_ijvm: m->constant_pool.size = %d\n", m->constant_pool_size);
-    // dprintf("init_ijvm: m->text:\n");
-    // for (int i = 0; i < m->text_size; i++) {
-    //     dprintf("%x ", m->text[i]);
-    // }
-    // dprintf("\n");
+    dprintf("init_ijvm: m->text.size = %d\n", m->text_size);
+    dprintf("init_ijvm: m->constant_pool.size = %d\n", m->constant_pool_size);
+    dprintf("init_ijvm: m->text:\n");
+    for (int i = 0; i < m->text_size; i++) {
+         dprintf("%x ", m->text[i]);
+    }
+     dprintf("\n");
     initialize_stack(&m->stack);
-    //fprintf(stderr, "IJVM initialized with size %d\n", INITIAL_STACK_SIZE);
+    dprintf("IJVM initialized with size %d\n", INITIAL_STACK_SIZE);
     init_main_frame(m); 
     return m;
 }
@@ -693,10 +683,6 @@ void run(ijvm* m) {
     step(m);
   }
 }
-
-
-
-
 
 // Checks if reference is a freed heap array. Note that this assumes that  
 bool is_heap_freed(ijvm* m, word_t reference) {
